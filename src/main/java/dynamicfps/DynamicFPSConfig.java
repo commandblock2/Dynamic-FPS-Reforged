@@ -1,54 +1,101 @@
 package dynamicfps;
 
-import com.moandjiezana.toml.Toml;
-import com.moandjiezana.toml.TomlWriter;
-import net.fabricmc.loader.api.FabricLoader;
+import net.minecraftforge.common.ForgeConfigSpec;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.File;
-import java.io.IOException;
+import static dynamicfps.util.Localization.config;
 
 public final class DynamicFPSConfig {
-	private transient File file;
-	/// Whether to disable or enable the frame rate drop when unfocused.
-	public boolean reduceFPSWhenUnfocused = true;
-	/// The frame rate to target when unfocused (only applies if `enableUnfocusedFPS` is true).
-	public int unfocusedFPS = 1;
-	/// Whether to uncap FPS when hovered, even if it would otherwise be reduced.
-	public boolean restoreFPSWhenHovered = true;
-	/// Volume multiplier when not focused.
-	public float unfocusedVolumeMultiplier = 0.25f;
-	/// Volume multiplier when not visible.
-	public float hiddenVolumeMultiplier = 0f;
-	/// Whether to trigger a garbage collector run whenever the game is unfocused.
-	public boolean runGCOnUnfocus = false;
-	
-	private DynamicFPSConfig() {}
-	
-	public static DynamicFPSConfig load() {
-		File file = new File(
-			FabricLoader.getInstance().getConfigDir().toString(),
-			DynamicFPSMod.MOD_ID + ".toml"
-		);
-		
-		DynamicFPSConfig config;
-		if (file.exists()) {
-			Toml configTOML = new Toml().read(file);
-			config = configTOML.to(DynamicFPSConfig.class);
-			config.file = file;
-		} else {
-			config = new DynamicFPSConfig();
-			config.file = file;
-			config.save();
-		}
-		return config;
+	static final ForgeConfigSpec SPECS;
+	static final DynamicFPSConfig CLIENT;
+
+
+	static {
+		Pair<DynamicFPSConfig, ForgeConfigSpec> clientPair = new ForgeConfigSpec.Builder().configure(DynamicFPSConfig::new);
+		SPECS = clientPair.getRight();
+		CLIENT = clientPair.getLeft();
 	}
-	
-	public void save() {
-		TomlWriter writer = new TomlWriter();
-		try {
-			writer.write(this, file);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+
+	/// Whether to disable or enable the frame rate drop when unfocused.
+	ForgeConfigSpec.BooleanValue reduceFPSWhenUnfocused;
+	/// The frame rate to target when unfocused (only applies if `enableUnfocusedFPS` is true).
+	ForgeConfigSpec.IntValue unfocusedFPS;
+	/// Whether to uncap FPS when hovered, even if it would otherwise be reduced.
+	ForgeConfigSpec.BooleanValue restoreFPSWhenHovered;
+	/// Volume multiplier when not focused.
+	ForgeConfigSpec.ConfigValue<Float> unfocusedVolumeMultiplier;
+	/// Volume multiplier when not visible.
+	ForgeConfigSpec.ConfigValue<Float> hiddenVolumeMultiplier;
+	/// Whether to
+	ForgeConfigSpec.BooleanValue runGCOnUnfocus;
+
+	DynamicFPSConfig(ForgeConfigSpec.Builder builder) {
+		this.reduceFPSWhenUnfocused = builder.comment("disable or enable the frame rate drop when unfocused")
+				.translation(config("reduce_when_unfocused"))
+				.define("reduceFPSWhenUnfocused",true);
+		this.unfocusedFPS = builder.comment("The frame rate to target when unfocused (only applies if `enableUnfocusedFPS` is true).")
+				.translation(config("unfocused_fps"))
+				.defineInRange("unfocusedFPS",1,0,60);
+		this.restoreFPSWhenHovered = builder.comment("uncap FPS when hovered, even if it would otherwise be reduced")
+				.translation(config("restore_when_hovered"))
+				.define("restoreFPSWhenHovered", true);
+		this.unfocusedVolumeMultiplier = builder.comment("Volume multiplier when not focused.")
+				.translation(config("unfocused_volume"))
+				.define("unfocusedVolumeMultiplier",0.25f);
+		this.hiddenVolumeMultiplier = builder.comment("Volume multiplier when not visible.")
+				.translation(config("hidden_volume"))
+				.define("hiddenVolumeMultiplier", 0f);
+		this.runGCOnUnfocus = builder.comment("trigger a garbage collector run whenever the game is unfocused.")
+				.translation(config("run_gc_on_unfocus"))
+				.define("runGCOnUnfocus",false);
+	}
+
+	public boolean reduceFPSWhenUnfocused() {
+		return this.reduceFPSWhenUnfocused.get();
+	}
+
+	public DynamicFPSConfig reduceFPSWhenUnfocused(boolean var) {
+		this.reduceFPSWhenUnfocused.set(var);
+		return this;
+	}
+
+	public int unfocusedFPS() {
+		return this.unfocusedFPS.get();
+	}
+	public DynamicFPSConfig unfocusedFPS(int var) {
+		this.unfocusedFPS.set(var);
+		return this;
+	}
+
+	public boolean restoreFPSWhenHovered() {
+		return this.restoreFPSWhenHovered.get();
+	}
+	public DynamicFPSConfig restoreFPSWhenHovered(boolean var) {
+		this.restoreFPSWhenHovered.set(var);
+		return this;
+	}
+
+	public float unfocusedVolumeMultiplier() {
+		return this.unfocusedVolumeMultiplier.get();
+	}
+	public DynamicFPSConfig unfocusedVolumeMultiplier(float var) {
+		this.unfocusedVolumeMultiplier.set(var);
+		return this;
+	}
+
+	public float hiddenVolumeMultiplier() {
+		return this.hiddenVolumeMultiplier.get();
+	}
+	public DynamicFPSConfig hiddenVolumeMultiplier(float var) {
+		this.hiddenVolumeMultiplier.set(var);
+		return this;
+	}
+
+	public boolean runGCOnUnfocus() {
+		return this.runGCOnUnfocus.get();
+	}
+	public DynamicFPSConfig runGCOnUnfocus(boolean var) {
+		this.runGCOnUnfocus.set(var);
+		return this;
 	}
 }

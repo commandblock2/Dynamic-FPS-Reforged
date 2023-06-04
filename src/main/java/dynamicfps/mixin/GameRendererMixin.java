@@ -2,11 +2,13 @@ package dynamicfps.mixin;
 
 import dynamicfps.DynamicFPSMod;
 import dynamicfps.DynamicFPSMod.SplashOverlayAccessor;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Overlay;
-import net.minecraft.client.gui.screen.SplashOverlay;
-import net.minecraft.client.render.GameRenderer;
-import org.spongepowered.asm.mixin.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.LoadingOverlay;
+import net.minecraft.client.gui.screens.Overlay;
+import net.minecraft.client.renderer.GameRenderer;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -15,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class GameRendererMixin {
 	@Shadow
 	@Final
-	private MinecraftClient client;
+	private Minecraft minecraft;
 	
 	/**
 	 Implements the mod's big feature.
@@ -30,10 +32,10 @@ public class GameRendererMixin {
 	/**
 	 cancels world rendering under certain conditions
 	 */
-	@Inject(at = @At("HEAD"), method = "renderWorld", cancellable = true)
+	@Inject(at = @At("HEAD"), method = "renderLevel", cancellable = true)
 	private void onRenderWorld(CallbackInfo callbackInfo) {
-		Overlay overlay = client.getOverlay();
-		if (overlay instanceof SplashOverlay) {
+		Overlay overlay = minecraft.getOverlay();
+		if (overlay instanceof LoadingOverlay) {
 			SplashOverlayAccessor splashScreen = (SplashOverlayAccessor) overlay;
 			if (!splashScreen.isReloadComplete()) {
 				callbackInfo.cancel();

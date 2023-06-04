@@ -1,76 +1,59 @@
 package dynamicfps;
 
-import dynamicfps.util.KeyBindingHandler;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
-import com.mojang.blaze3d.glfw.Window;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.util.Util;
+import com.mojang.blaze3d.platform.Window;
+import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
+import net.minecraft.sounds.SoundSource;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import org.lwjgl.glfw.GLFW;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.locks.LockSupport;
 
-import static dynamicfps.util.Localization.translationKey;
-
-public class DynamicFPSMod implements ModInitializer {
+@Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
+@Mod(DynamicFPSMod.MOD_ID)
+public class DynamicFPSMod {
 	public static final String MOD_ID = "dynamicfps";
 	
-	public static DynamicFPSConfig config = null;
-	
-	private static boolean isDisabled = false;
+	static boolean isDisabled = false;
 	public static boolean isDisabled() { return isDisabled; }
 	
-	private static boolean isForcingLowFPS = false;
+	static boolean isForcingLowFPS = false;
 	public static boolean isForcingLowFPS() { return isForcingLowFPS; }
-	
-	private static final KeyBindingHandler toggleForcedKeyBinding = new KeyBindingHandler(
-		translationKey("key", "toggle_forced"),
-		"key.categories.misc",
-		() -> isForcingLowFPS = !isForcingLowFPS
-	);
-	
-	private static final KeyBindingHandler toggleDisabledKeyBinding = new KeyBindingHandler(
-		translationKey("key", "toggle_disabled"),
-		"key.categories.misc",
-		() -> isDisabled = !isDisabled
-	);
-	
-	@Override
-	public void onInitialize() {
-		config = DynamicFPSConfig.load();
-		
-		toggleForcedKeyBinding.register();
-		toggleDisabledKeyBinding.register();
-		
-		HudRenderCallback.EVENT.register(new HudInfoRenderer());
-		FlawlessFrames.onClientInitialization();
+
+	public DynamicFPSMod() {
+		ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT,DynamicFPSConfig.SPECS);
 	}
 	
-	private static MinecraftClient client;
+	private static Minecraft client;
 	private static Window window;
 	private static boolean isFocused, isVisible, isHovered;
 	private static long lastRender;
+	/**
+	 * Should replace endpoints in a future update
+	 */
+	private static boolean preventSkip = false;
 	/**
 	 Determines whether the game should render anything at this time. If not, blocks for a short time.
 	 
 	 @return whether the game should be rendered after this.
 	 */
 	public static boolean checkForRender() {
-		if (isDisabled || FlawlessFrames.isActive()) return true;
-		
+		if (!DynamicFPSConfig.SPECS.isLoaded()) return true;
+		if (isDisabled || preventSkip) return true;
 		if (client == null) {
-			client = MinecraftClient.getInstance();
+			client = Minecraft.getInstance();
 			window = client.getWindow();
 		}
-		isFocused = client.isWindowFocused();
-		isVisible = GLFW.glfwGetWindowAttrib(window.getHandle(), GLFW.GLFW_VISIBLE) != 0;
-		isHovered = GLFW.glfwGetWindowAttrib(window.getHandle(), GLFW.GLFW_HOVERED) != 0;
+		isFocused = client.isWindowActive();
+		isVisible = GLFW.glfwGetWindowAttrib(window.getWindow(), GLFW.GLFW_VISIBLE) != 0;
+		isHovered = GLFW.glfwGetWindowAttrib(window.getWindow(), GLFW.GLFW_HOVERED) != 0;
 		
 		checkForStateChanges();
 		
-		long currentTime = Util.getMeasuringTimeMs();
+		long currentTime = Util.getMillis();
 		long timeSinceLastRender = currentTime - lastRender;
 		
 		if (!checkForRender(timeSinceLastRender)) return false;
@@ -80,7 +63,7 @@ public class DynamicFPSMod implements ModInitializer {
 	}
 
 	public static boolean shouldShowToasts() {
-		return isDisabled || FlawlessFrames.isActive() || fpsOverride() == null;
+		return isDisabled || preventSkip || fpsOverride() == null;
 	}
 
 	private static boolean wasFocused = true;
@@ -88,20 +71,14 @@ public class DynamicFPSMod implements ModInitializer {
 	private static void checkForStateChanges() {
 		if (isFocused != wasFocused) {
 			wasFocused = isFocused;
-			if (isFocused) {
-				onFocus();
-			} else {
-				onUnfocus();
-			}
+			if (isFocused) onFocus();
+			else onUnfocus();
 		}
 		
 		if (isVisible != wasVisible) {
 			wasVisible = isVisible;
-			if (isVisible) {
-				onAppear();
-			} else {
-				onDisappear();
-			}
+			if (isVisible) onAppear();
+			else onDisappear();
 		}
 	}
 	
@@ -110,34 +87,29 @@ public class DynamicFPSMod implements ModInitializer {
 	}
 	
 	private static void onUnfocus() {
-		if (isVisible) {
-			setVolumeMultiplier(config.unfocusedVolumeMultiplier);
-		}
+		if (isVisible)
+			setVolumeMultiplier(config().unfocusedVolumeMultiplier());
 		
-		if (config.runGCOnUnfocus) {
-			System.gc();
-		}
+		if (config().runGCOnUnfocus()) System.gc();
 	}
 	
 	private static void onAppear() {
-		if (!isFocused) {
-			setVolumeMultiplier(config.unfocusedVolumeMultiplier);
-		}
+		if (!isFocused) setVolumeMultiplier(config().unfocusedVolumeMultiplier());
 	}
 	
 	private static void onDisappear() {
-		setVolumeMultiplier(config.hiddenVolumeMultiplier);
+		setVolumeMultiplier(config().hiddenVolumeMultiplier());
 	}
 	
 	private static void setVolumeMultiplier(float multiplier) {
 		// setting the volume to 0 stops all sounds (including music), which we want to avoid if possible.
-		var clientWillPause = !isFocused && client.options.pauseOnLostFocus && client.currentScreen == null;
-		// if the client would pause anyway, we don't need to do anything because that will already pause all sounds.
+		var clientWillPause = !isFocused && client.options.pauseOnLostFocus && client.screen == null;
+		// if the client pauses anyway, we don't need to do anything because that will already pause all sounds.
 		if (multiplier == 0 && clientWillPause) return;
 		
-		var baseVolume = client.options.getSoundVolume(SoundCategory.MASTER);
-		client.getSoundManager().updateSoundVolume(
-			SoundCategory.MASTER,
+		var baseVolume = client.options.getSoundSourceVolume(SoundSource.MASTER);
+		client.getSoundManager().updateSourceVolume(
+			SoundSource.MASTER,
 			baseVolume * multiplier
 		);
 	}
@@ -183,12 +155,17 @@ public class DynamicFPSMod implements ModInitializer {
 	@Nullable
 	private static Integer fpsOverride() {
 		if (!isVisible) return 0;
-		if (isForcingLowFPS) return config.unfocusedFPS;
-		if (config.restoreFPSWhenHovered && isHovered) return null;
-		if (config.reduceFPSWhenUnfocused && !client.isWindowFocused()) return config.unfocusedFPS;
+		if (isForcingLowFPS) return config().unfocusedFPS();
+		if (config().restoreFPSWhenHovered() && isHovered) return null;
+		if (config().reduceFPSWhenUnfocused() && !client.isWindowActive()) return config().unfocusedFPS();
 		return null;
 	}
-	
+
+	public static DynamicFPSConfig config() {
+		return DynamicFPSConfig.CLIENT;
+	}
+
+
 	public interface SplashOverlayAccessor {
 		boolean isReloadComplete();
 	}
