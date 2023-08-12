@@ -35,6 +35,8 @@ public class DynamicFPSMod {
 	 * Should replace endpoints in a future update
 	 */
 	private static boolean preventSkip = false;
+	private static float volumeStep;
+	private static float volume;
 	/**
 	 Determines whether the game should render anything at this time. If not, blocks for a short time.
 	 
@@ -47,6 +49,7 @@ public class DynamicFPSMod {
 			client = Minecraft.getInstance();
 			window = client.getWindow();
 		}
+		updateSound();
 		isFocused = client.isWindowActive();
 		isVisible = GLFW.glfwGetWindowAttrib(window.getWindow(), GLFW.GLFW_VISIBLE) != 0;
 		isHovered = GLFW.glfwGetWindowAttrib(window.getWindow(), GLFW.GLFW_HOVERED) != 0;
@@ -60,6 +63,17 @@ public class DynamicFPSMod {
 		
 		lastRender = currentTime;
 		return true;
+	}
+
+	private static void updateSound() {
+		float master = client.getSoundManager().soundEngine.listener.getGain();
+		if (volume != master) {
+			float newVol;
+			if (volume > master) newVol = Math.min(volume, master + volumeStep);
+			else newVol = Math.max(volume, master - volumeStep);
+
+			client.getSoundManager().updateSourceVolume(SoundSource.MASTER,newVol);
+		}
 	}
 
 	public static boolean shouldShowToasts() {
@@ -108,10 +122,8 @@ public class DynamicFPSMod {
 		if (multiplier == 0 && clientWillPause) return;
 		
 		var baseVolume = client.options.getSoundSourceVolume(SoundSource.MASTER);
-		client.getSoundManager().updateSourceVolume(
-			SoundSource.MASTER,
-			baseVolume * multiplier
-		);
+		volume = baseVolume * multiplier;
+		volumeStep = config().volumeTransitionSpeed() / 20;
 	}
 	
 	// we always render one last frame before actually reducing FPS, so the hud text shows up instantly when forcing low fps.

@@ -1,5 +1,6 @@
 package dynamicfps;
 
+import net.minecraft.util.Mth;
 import net.minecraftforge.common.ForgeConfigSpec;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -26,6 +27,7 @@ public final class DynamicFPSConfig {
 	ForgeConfigSpec.ConfigValue<Float> unfocusedVolumeMultiplier;
 	/// Volume multiplier when not visible.
 	ForgeConfigSpec.ConfigValue<Float> hiddenVolumeMultiplier;
+	ForgeConfigSpec.IntValue volumeTransitionSpeed;
 	/// Whether to
 	ForgeConfigSpec.BooleanValue runGCOnUnfocus;
 
@@ -45,6 +47,9 @@ public final class DynamicFPSConfig {
 		this.hiddenVolumeMultiplier = builder.comment("Volume multiplier when not visible.")
 				.translation(config("hidden_volume"))
 				.define("hiddenVolumeMultiplier", 0f);
+		this.volumeTransitionSpeed = builder.comment("The percentage of the volume will be decrease in 1 second")
+				.translation(config("volume_transition"))
+				.defineInRange("volumeTransitionSpeed",35,1,100);
 		this.runGCOnUnfocus = builder.comment("trigger a garbage collector run whenever the game is unfocused.")
 				.translation(config("run_gc_on_unfocus"))
 				.define("runGCOnUnfocus",false);
@@ -88,6 +93,20 @@ public final class DynamicFPSConfig {
 	}
 	public DynamicFPSConfig hiddenVolumeMultiplier(float var) {
 		this.hiddenVolumeMultiplier.set(var);
+		return this;
+	}
+
+	public float volumeTransitionSpeed() {
+		return (float) this.volumeTransitionSpeed.get() / 100f;
+	}
+
+	public DynamicFPSConfig volumeTransitionSpeed(float speed) {
+		this.volumeTransitionSpeed.set(Math.round(Mth.clamp(speed,0f,1f) * 100f));
+		return this;
+	}
+
+	public DynamicFPSConfig volumeTransitionSpeed(int speed) {
+		this.volumeTransitionSpeed.set(Mth.clamp(speed,1,100));
 		return this;
 	}
 

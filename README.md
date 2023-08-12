@@ -67,7 +67,7 @@ Download in [the releases section](../releases), on [Modrinth](https://modrinth.
 
 # Planned features
 
-- [ ] Smooth volume transitions
+- [x] Smooth volume transitions
 - [ ] Graphical settings interaction
 - [ ] Way to allow other mods to request all frames to be processed
 
