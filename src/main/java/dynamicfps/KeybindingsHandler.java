@@ -2,11 +2,12 @@ package dynamicfps;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
+import net.minecraftforge.client.ClientRegistry;
 import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.settings.KeyConflictContext;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 
 import static dynamicfps.util.Localization.keyBinding;
 
@@ -29,7 +30,7 @@ public class KeybindingsHandler {
     );
 
     @SubscribeEvent
-    public static void interaction(InputEvent.InteractionKeyMappingTriggered event) {
+    public static void interaction(InputEvent.ClickInputEvent event) {
         if (event.getKeyMapping().same(toggleDisabledKeybinding)) {
             DynamicFPSMod.isDisabled = !DynamicFPSMod.isDisabled;
         }
@@ -41,9 +42,9 @@ public class KeybindingsHandler {
     @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
     public static class Registration {
         @SubscribeEvent
-        public static void keybindingRegistration(RegisterKeyMappingsEvent event) {
-            event.register(toggleForcedKeybinding);
-            event.register(toggleDisabledKeybinding);
+        public static void keybindingRegistration(FMLClientSetupEvent event) {
+            ClientRegistry.registerKeyBinding(toggleForcedKeybinding);
+            ClientRegistry.registerKeyBinding(toggleDisabledKeybinding);
         }
     }
 }

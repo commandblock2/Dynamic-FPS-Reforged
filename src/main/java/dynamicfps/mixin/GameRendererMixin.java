@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(GameRenderer.class)
+@Mixin(value = GameRenderer.class, priority = 1338)
 public class GameRendererMixin {
 	@Shadow
 	@Final
@@ -22,7 +22,7 @@ public class GameRendererMixin {
 	/**
 	 Implements the mod's big feature.
 	 */
-	@Inject(at = @At("HEAD"), method = "render", cancellable = true)
+	@Inject(at = @At("HEAD"), method = "render(FJZ)V", cancellable = true)
 	private void onRender(CallbackInfo callbackInfo) {
 		if (!DynamicFPSMod.checkForRender()) {
 			callbackInfo.cancel();
