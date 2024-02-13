@@ -48,7 +48,7 @@ jobs:
     # - name: Build with Gradle 8.5
     #   run: gradle build
 
-  dependency-submission:
+  upload:
 
     runs-on: ubuntu-latest
     permissions:
@@ -62,17 +62,12 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    # Generates and submits a dependency graph, enabling Dependabot Alerts for all project dependencies.
-    # See: https://github.com/gradle/actions/blob/main/dependency-submission/README.md
-    - name: Generate and submit dependency graph
-      uses: gradle/actions/dependency-submission@ec92e829475ac0c2315ea8f9eced72db85bb337a # v3.0.0
-
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v4.3.1
       with:
         # Artifact name
         name: artifact # optional, default is artifact
         # A file, directory or wildcard pattern that describes what to upload
-        path: ./build/libs/
+        path: "build/libs"
         # The desired behavior if no files are found using the provided path.
         if-no-files-found: error
